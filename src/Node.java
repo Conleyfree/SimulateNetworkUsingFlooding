@@ -12,8 +12,8 @@ public class Node {
     private Set<Node> relativeNodes = new HashSet<Node>();     // 该节点相邻节点集
 
     private ArrayList<Packet> accepts = new ArrayList<>();  // 某一个时刻点收到的包
-    private ArrayList<Packet> willsend = new ArrayList<>(); // 某一实际将要寻求发送的包
-    private ArrayList<Packet> wait4send = new ArrayList<>();// 某一个由于线路被占用而无法发送的包
+    private ArrayList<Packet> willsends = new ArrayList<>(); // 某一实际将要寻求发送的包
+    private ArrayList<Packet> wait4sends = new ArrayList<>();// 某一个由于线路被占用而无法发送的包
 
     public Node(String name) {
         this.name = name;
@@ -60,16 +60,16 @@ public class Node {
 
     /* 节点接到一个包或者产生了一个包(后者对出发节点)准备发出到网络 */
     public void prepareToSend(){
-        willsend.clear();                   // 清空上一时刻要发出的数据包
-        willsend.addAll(wait4send);         // 加入上一时刻未发出的数据包
-        willsend.addAll(accepts);           // 加入上一时刻接收到的数据包
+        willsends.clear();                   // 清空上一时刻要发出的数据包
+        willsends.addAll(wait4sends);         // 加入上一时刻未发出的数据包
+        willsends.addAll(accepts);           // 加入上一时刻接收到的数据包
         accepts.clear();                    // 清空上一时刻接收到的数据包
-        wait4send.clear();                  // 清空上一时刻未发出的数据包
+        wait4sends.clear();                  // 清空上一时刻未发出的数据包
     }
 
     /* 把这一时刻需要发送的包全部发出，通道被占用的包放入wait4send里面 */
     public void send(){
-        for(Packet packet : willsend) {
+        for(Packet packet : willsends) {
             if (packet.getCounter() == 0) {
                 System.out.print("传输失败，已超出生命周期: " + packet);
                 System.out.println("; 当前所在结点：" + this.name + "; 当前时间：" + NetWork.getTime() + "s.");
@@ -82,7 +82,7 @@ public class Node {
                         Packet duplication = packet.clone();
                         duplication.readdback();                         // 由于阻塞没办法发出的，需要把前面多减去的那一跳加回来
                         duplication.setNext(packet.getNext());           // 需要设置该包要传递的方向
-                        wait4send.add(duplication);
+                        wait4sends.add(duplication);
                     }else{
                         packet.getNext().accept(packet.clone());
                     }
@@ -99,7 +99,7 @@ public class Node {
                             Packet duplication = packet.clone();
                             duplication.readdback();                 // 由于阻塞没办法发出的，需要把前面多减去的那一跳加回来
                             duplication.setNext(nextNode);           // 需要设置该包要传递的方向
-                            wait4send.add(duplication);
+                            wait4sends.add(duplication);
                         } else {
                             nextNode.accept(packet.clone());
                         }
@@ -123,11 +123,11 @@ public class Node {
     }
 
     public boolean work(){
-        if(accepts.size() == 0 && willsend.size() == 0 && wait4send.size() == 0)     return false;   //不需要工作了
+        if(accepts.size() == 0 && willsends.size() == 0 && wait4sends.size() == 0)     return false;   //不需要工作了
 
-        if(willsend.size() != 0){
+        if(willsends.size() != 0){
             send();                 // 发送数据包
-            willsend.clear();       // 清空待发出数据包集合
+            willsends.clear();       // 清空待发出数据包集合
         }
         prepareToSend();            // 发送完后把这一时刻未能发送出去的包，以及收到的包，放入待发送集合中准备下一刻发送
 
